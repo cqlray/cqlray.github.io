@@ -2,7 +2,7 @@
 layout: post
 title:  "第一篇 开端"
 date:   2020-11-27 22:44:35 +0800
-categories: jekyll update
+categories: 个人
 ---
 这是我的第一篇新博客，很早之前在csdn上写过几篇，但没能坚持下来，后来一直都觉得满遗憾的，要是坚持下来，现在应该会更好吧。
 

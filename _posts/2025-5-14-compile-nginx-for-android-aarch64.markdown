@@ -13,15 +13,15 @@ categories: nginx android aarch64
 
 编译需要的工具和源代码版本：
 
-1. android NDK： android-ndk-r23c
+1. android NDK： [android-ndk-r23c](https://github.com/android/ndk/wiki/Home/e05d396317f6e1e5e00e3fe7d4f223ad54a354f8)
 2. nginx：       1.25.3
 3. openssl：     1.1.1w
 4. pcre：        8.45
 5. zlib：        1.2.13
 
-以下是完整的、**基于 `android-ndk-r25b` 的 Nginx 1.25.3 Android aarch64 构建脚本**。包括：
+以下是完整的、**基于 `android-ndk-r23c` 的 Nginx 1.25.3 Android aarch64 构建脚本**。包括：
 
-- 下载并解压所有依赖（含 `android-ndk-r25b`）
+- 下载并解压所有依赖（含 `android-ndk-r23c`）
 - 构建静态 nginx 二进制，可推送到 Android 7.1.2 aarch64 测试
 
 ---

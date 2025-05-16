@@ -13,15 +13,15 @@ categories: nginx android aarch64
 
 编译需要的工具和源代码版本：
 
-1. android NDK： [android-ndk-r23c](https://github.com/android/ndk/wiki/Home/e05d396317f6e1e5e00e3fe7d4f223ad54a354f8)
+1. android NDK： android-ndk-r28b
 2. nginx：       1.25.3
 3. openssl：     1.1.1w
 4. pcre：        8.45
 5. zlib：        1.2.13
 
-以下是完整的、**基于 `android-ndk-r23c` 的 Nginx 1.25.3 Android aarch64 构建脚本**。包括：
+以下是完整的、**基于 `android-ndk-r28b` 的 Nginx 1.25.3 Android aarch64 构建脚本**。包括：
 
-- 下载并解压所有依赖（含 `android-ndk-r23c`）
+- 下载并解压所有依赖（含 `android-ndk-r28b`）
 - 构建静态 nginx 二进制，可推送到 Android 7.1.2 aarch64 测试
 
 ---
@@ -119,6 +119,8 @@ done
 echo "所有源码已准备就绪: ./sources/"
 ```
 
+下载[android-ndk-28b](https://github.com/android/ndk/wiki/Home/840eb77b361bbc216f18cb1aaf05a2b656078c7c) 放到`./archives`中，然后把 android-ndk-28b 解压到`./source/`中。
+
 ---
 
 ## 02_build_deps.sh
@@ -137,7 +139,7 @@ LIBXCRYPT_VERSION="4.4.36"
 [ ! -d "sources" ] && { echo "请先运行 download_sources.sh"; exit 1; }
 
 # NDK配置
-export ANDROID_NDK="${ANDROID_NDK:-$(pwd)/sources/android-ndk-r23c}"
+export ANDROID_NDK="${ANDROID_NDK:-$(pwd)/sources/android-ndk-r28b}"
 export API_LEVEL=24
 export ARCH="aarch64"
 export OUT_DIR="$(pwd)/android-libs"
@@ -349,13 +351,14 @@ ngx_close_glob(ngx_glob_t *gl)
 set -euo pipefail
 
 # 使用绝对路径定义NDK
-export ANDROID_NDK="${ANDROID_NDK:-$(pwd)/sources/android-ndk-r23c}"
+export ANDROID_NDK="${ANDROID_NDK:-$(pwd)/sources/android-ndk-r28b}"
 export TOOLCHAIN="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64"
+export API_LEVEL=24
 
 # 设置完整的交叉编译环境
 export PATH="$TOOLCHAIN/bin:$PATH"
-export CC="$TOOLCHAIN/bin/aarch64-linux-android24-clang"  # 使用完整路径
-export CXX="$TOOLCHAIN/bin/aarch64-linux-android24-clang++"
+export CC="$TOOLCHAIN/bin/aarch64-linux-android${API_LEVEL}-clang"  # 使用完整路径
+export CXX="$TOOLCHAIN/bin/aarch64-linux-android${API_LEVEL}-clang++"
 export AR="$TOOLCHAIN/bin/llvm-ar"
 export LD="$TOOLCHAIN/bin/ld.lld"
 export RANLIB="$TOOLCHAIN/bin/llvm-ranlib"
@@ -363,8 +366,8 @@ export STRIP="$TOOLCHAIN/bin/llvm-strip"
 
 # 设置sysroot和编译标志
 export SYSROOT="$TOOLCHAIN/sysroot"
-export CFLAGS="--sysroot=$SYSROOT -fPIC -DANDROID -I$(pwd)/android-libs/include  -DNGX_HAVE_GCC_ATOMIC=1 -DNGX_HAVE_ATOMIC_OPS=1  -DNGX_HAVE_MAP_ANON=1"
-export LDFLAGS="--sysroot=$SYSROOT -static -fuse-ld=lld -L$(pwd)/android-libs/lib -lssl -lcrypto -lz -lpcre -lcrypt"
+export CFLAGS="--sysroot=$SYSROOT -fPIE -fPIC -fno-asynchronous-unwind-tables -fno-omit-frame-pointer -DANDROID -D__ANDROID_API__=$API_LEVEL -march=armv8-a -I$(pwd)/android-libs/include -DNGX_HAVE_GCC_ATOMIC=1 -DNGX_HAVE_ATOMIC_OPS=1  -DNGX_HAVE_MAP_ANON=1"
+export LDFLAGS="--sysroot=$SYSROOT -static-pie -Wl,-z,relro,-z,now -fuse-ld=lld -L$(pwd)/android-libs/lib -lssl -lcrypto -lz -lpcre -lcrypt"
 
 # 验证编译器
 echo "=== 编译器验证 ==="
@@ -397,6 +400,9 @@ make -j$(nproc)
 echo "编译成功！二进制位置: objs/nginx"
 echo "验证架构:"
 file objs/nginx
+
+echo "检查TLS信息:"
+readelf -lW objs/nginx | grep TLS -A5
 ```
 
 ---
@@ -421,4 +427,20 @@ adb shell
 cd /data/local/tmp
 chmod +x nginx
 ./nginx -V
+```
+
+## 重点：使用 android-ndk-r28b
+
+| NDK 版本 | 行为                | 是否有 TLS 段 |
+| ------ | ----------------- | --------- |
+| r23c   | 强制生成 TLS 段（旧 lld） | 有         |
+| r25b   | 强制生成 TLS 段（旧 lld） | 有         |
+| r28b   | 不自动引入 TLS 段       | 无         |
+
+如果通过ndk23c、25b等编译，放到android上执行报错，如下：
+
+```s
+134|rk3399_all:/mnt/cc # ./nginx -V
+error: "./nginx": executable's TLS segment is underaligned: alignment is 8, needs to be at least 64 for ARM64 Bionic
+Aborted
 ```

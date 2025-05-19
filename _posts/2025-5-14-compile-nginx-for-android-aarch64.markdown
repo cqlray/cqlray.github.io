@@ -367,7 +367,7 @@ export STRIP="$TOOLCHAIN/bin/llvm-strip"
 # 设置sysroot和编译标志
 export SYSROOT="$TOOLCHAIN/sysroot"
 export CFLAGS="--sysroot=$SYSROOT -fPIE -fPIC -fno-asynchronous-unwind-tables -fno-omit-frame-pointer -DANDROID -D__ANDROID_API__=$API_LEVEL -march=armv8-a -I$(pwd)/android-libs/include -DNGX_HAVE_GCC_ATOMIC=1 -DNGX_HAVE_ATOMIC_OPS=1  -DNGX_HAVE_MAP_ANON=1"
-export LDFLAGS="--sysroot=$SYSROOT -static-pie -Wl,-z,relro,-z,now -fuse-ld=lld -L$(pwd)/android-libs/lib -lssl -lcrypto -lz -lpcre -lcrypt"
+export LDFLAGS="--sysroot=$SYSROOT -static -Wl,-z,relro,-z,now -fuse-ld=lld -L$(pwd)/android-libs/lib -lssl -lcrypto -lz -lpcre -lcrypt"
 
 # 验证编译器
 echo "=== 编译器验证 ==="
@@ -386,7 +386,7 @@ rm -rf objs
 # 配置Nginx（关键修改：使用绝对路径）
 ./configure \
     --crossbuild=Linux::aarch64 \
-    --prefix=/usr/local/nginx-android \
+    --prefix=/system/bin/nginx \
     --add-module=../nginx-http-flv-module-1.2.9 \
     --with-cc="$CC" \
     --with-cc-opt="$CFLAGS" \
